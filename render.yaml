@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: notes-backend
+    rootDir: backend
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 18
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: CLIENT_ORIGIN
+        value: https://notes-frontend.onrender.com
+      - key: EMAIL_ENABLED
+        value: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM
+        sync: false
+      - key: ADMIN_EMAIL
+        value: bhargavvana80@gmail.com
+
+  - type: static
+    name: notes-frontend
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: build
+    envVars:
+      - key: REACT_APP_API_BASE
+        value: https://notes-backend.onrender.com
