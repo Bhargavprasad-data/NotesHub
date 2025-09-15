@@ -36,6 +36,10 @@ try {
 			console.log('Mailer ready');
 		} catch (e) {
 			console.error('Mailer configuration error:', e && e.message ? e.message : e);
+			console.log('To fix email issues:');
+			console.log('1. Set EMAIL_ENABLED=false to disable emails');
+			console.log('2. Or configure RESEND_API_KEY for Resend service');
+			console.log('3. Or set up Gmail App Password for SMTP');
 		}
 	};
 } catch (_) {}
@@ -43,7 +47,17 @@ try {
 const app = express();
 
 app.use(helmet());
-app.use(cors({ origin: process.env.CLIENT_ORIGIN || '*', credentials: true }));
+// CORS configuration for both development and production
+const allowedOrigins = [
+  'http://localhost:3000',  // Local development
+  'http://localhost:3001',  // Alternative local port
+  process.env.CLIENT_ORIGIN  // Production URL from env
+].filter(Boolean); // Remove any undefined values
+
+app.use(cors({ 
+  origin: allowedOrigins.length > 0 ? allowedOrigins : '*', 
+  credentials: true 
+}));
 app.use(express.json());
 app.use(morgan('dev'));
 

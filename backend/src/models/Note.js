@@ -22,6 +22,8 @@ const noteSchema = new mongoose.Schema(
 		fileSize: { type: Number, min: 0, max: 25 * 1024 * 1024 },
 		views: { type: Number, default: 0, min: 0 },
 		downloads: { type: Number, default: 0, min: 0 },
+		status: { type: String, enum: ['pending','approved','rejected'], default: 'pending', index: true },
+		rejectedReason: { type: String, trim: true, maxlength: 300 }
 	},
 	{ timestamps: true }
 );

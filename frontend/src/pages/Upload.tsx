@@ -130,7 +130,7 @@ export default function Upload() {
 		fd.append('uConsent', consent ? 'true' : 'false');
 		try {
 			await apiFetch('/api/notes', { method: 'POST', body: fd, isForm: true });
-			setStatus('Uploaded successfully');
+			setStatus('Upload received. Your note is now in the waiting list for admin approval.');
 			setShowAuthModal(false);
 			// Notify other components that departments might have been updated
 			window.dispatchEvent(new CustomEvent('departmentsUpdated', { 
@@ -442,7 +442,7 @@ export default function Upload() {
 			<textarea placeholder="Description" className="w-full p-2 rounded bg-black/30 border border-white/10" value={description} onChange={e=>setDescription(e.target.value)} />
 			<input placeholder="Tags (comma separated)" className="w-full p-2 rounded bg-black/30 border border-white/10" value={tags} onChange={e=>setTags(e.target.value)} />
 			<input type="file" accept=".pdf,.doc,.docx" onChange={e=>setFile(e.target.files?.[0] || null)} className="w-full" />
-			<button className="w-full p-2 rounded bg-blue-600 hover:bg-blue-500 disabled:opacity-60" disabled={!canUpload}>Upload</button>
+			<button type="button" onClick={onPrimarySubmit} className="w-full p-2 rounded bg-blue-600 hover:bg-blue-500 disabled:opacity-60" disabled={!canUpload}>Upload</button>
 			{status && <div className="text-sm">{status}</div>}
 
 			{showAuthModal && (

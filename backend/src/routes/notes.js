@@ -2,6 +2,7 @@ const router = require('express').Router();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const Note = require('../models/Note');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
@@ -49,7 +50,7 @@ router.get('/', async (req, res) => {
 		if (classLevel) filter.classLevel = classLevel;
 		if (subject) filter.subject = subject;
 		if (q) filter.$or = [ { subject: new RegExp(q, 'i') }, { description: new RegExp(q, 'i') }, { tags: new RegExp(q, 'i') } ];
-		const notes = await Note.find(filter)
+		const notes = await Note.find({ ...filter, status: 'approved' })
 			.sort({ createdAt: -1 })
 			.populate('owner', 'name email');
 		return res.json(notes);
@@ -98,6 +99,7 @@ router.get('/:id/download', auth(), async (req, res) => {
 
         const note = await Note.findById(req.params.id);
         if (!note) return res.status(404).json({ message: 'Not found' });
+        if (note.status !== 'approved') return res.status(403).json({ message: 'This note is not approved yet.' });
 
         // Increment downloads (non-blocking best-effort)
         Note.updateOne({ _id: note._id }, { $inc: { downloads: 1 } }).catch(() => {});
@@ -173,10 +175,17 @@ router.post('/', auth(['student', 'faculty']), upload.single('file'), async (req
 			tags: tags ? String(tags).split(',').map((s)=>s.trim()) : [],
 			fileUrl: `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`,
 			fileName: req.file.originalname,
-			fileSize: req.file.size
+			fileSize: req.file.size,
+			status: 'pending'
 		});
 		
-		// Send email notification
+		// Prepare signed moderation links and send email
+		const secret = process.env.MODERATION_SECRET || (process.env.JWT_SECRET || 'dev_secret');
+		const payload = JSON.stringify({ n: String(note._id), a: 'mod', t: Date.now() });
+		const sig = crypto.createHmac('sha256', secret).update(payload).digest('hex');
+		const baseUrl = `${req.protocol}://${req.get('host')}`;
+		const approveUrl = `${baseUrl}/api/notes/${note._id}/moderate?action=approve&payload=${encodeURIComponent(payload)}&sig=${sig}`;
+		const rejectUrl = `${baseUrl}/api/notes/${note._id}/moderate?action=reject&payload=${encodeURIComponent(payload)}&sig=${sig}`;
 		try {
 			await sendUploadNotification(
 				{ 
@@ -186,7 +195,9 @@ router.post('/', auth(['student', 'faculty']), upload.single('file'), async (req
 					phone: uploaderPhone,
 					role: user.role,
 					consent: true,
-					ip: uploaderIp
+					ip: uploaderIp,
+					approveUrl,
+					rejectUrl
 				},
 				note
 			);
@@ -317,6 +328,35 @@ router.get('/districts', async (req, res) => {
         return res.json({ districts });
     } catch (err) {
         return res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Moderation endpoint must appear before module export
+router.get('/:id/moderate', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { action, payload, sig } = req.query;
+        if (!action || !payload || !sig) return res.status(400).send('Invalid request');
+        const secret = process.env.MODERATION_SECRET || (process.env.JWT_SECRET || 'dev_secret');
+        const calc = crypto.createHmac('sha256', secret).update(String(payload)).digest('hex');
+        if (calc !== String(sig)) return res.status(403).send('Invalid signature');
+        const data = JSON.parse(String(payload));
+        if (String(data.n) !== String(id)) return res.status(400).send('Mismatched note');
+
+        const note = await Note.findById(id);
+        if (!note) return res.status(404).send('Not found');
+        if (action === 'approve') {
+            note.status = 'approved';
+            await note.save();
+            return res.send('Note approved successfully. You can close this tab.');
+        } else if (action === 'reject') {
+            note.status = 'rejected';
+            await note.save();
+            return res.send('Note rejected.');
+        }
+        return res.status(400).send('Unknown action');
+    } catch (err) {
+        return res.status(500).send('Server error');
     }
 });
 

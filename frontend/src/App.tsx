@@ -6,6 +6,7 @@ import Browse from './pages/Browse.tsx';
 import Upload from './pages/Upload.tsx';
 import Profile from './pages/Profile.tsx';
 import { Login, Register } from './pages/Auth.tsx';
+import ResetPassword from './pages/ResetPassword.tsx';
 import { AnimatePresence, motion } from 'framer-motion';
 
 function Home() {
@@ -263,6 +264,7 @@ function AnimatedRoutes() {
 					<Route path="/profile" element={<ProtectedRoute><div className="pt-20"><Profile /></div></ProtectedRoute>} />
 					<Route path="/login" element={<Login />} />
 					<Route path="/register" element={<Register />} />
+					<Route path="/reset-password" element={<ResetPassword />} />
 				</Routes>
 			</motion.div>
 		</AnimatePresence>
