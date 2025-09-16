@@ -27,6 +27,16 @@ export default function Upload() {
 	const [status, setStatus] = useState<string | null>(null);
 	const canUpload = Boolean(token); // User is authenticated if token exists
 
+	// Suggestions state
+	const [instSuggestions, setInstSuggestions] = useState<string[]>([]);
+	const [showInstSuggestions, setShowInstSuggestions] = useState(false);
+	const [stateSuggestions, setStateSuggestions] = useState<string[]>([]);
+	const [showStateSuggestions, setShowStateSuggestions] = useState(false);
+	const [districtSuggestions, setDistrictSuggestions] = useState<string[]>([]);
+	const [showDistrictSuggestions, setShowDistrictSuggestions] = useState(false);
+	const [subjectSuggestions, setSubjectSuggestions] = useState<string[]>([]);
+	const [showSubjectSuggestions, setShowSubjectSuggestions] = useState(false);
+
 	// Added: modal state and fields
 	const [showAuthModal, setShowAuthModal] = useState(false);
 	const [uPhone, setUPhone] = useState<string>(user?.phone || '');
@@ -70,6 +80,78 @@ export default function Upload() {
 	const removeDepartment = (dept: string) => {
 		setDepartments(departments.filter(d => d !== dept));
 	};
+
+	// Suggestion helpers
+	const highlightPrefix = (text: string, prefix: string) => {
+		if (!prefix) return text;
+		const t = String(text);
+		const p = String(prefix);
+		if (!t.toLowerCase().startsWith(p.toLowerCase())) return text;
+		const head = t.slice(0, p.length);
+		const tail = t.slice(p.length);
+		return (<><span className="bg-yellow-500/30 text-yellow-200 px-0.5 rounded-sm">{head}</span>{tail}</>);
+	};
+
+	useEffect(() => {
+		let active = true;
+		const load = async () => {
+			const prefix = institute.trim();
+			if (!prefix || !category) { setInstSuggestions([]); return; }
+			try {
+				const params = new URLSearchParams({ category, prefix });
+				const data = await apiFetch(`/api/notes/institutes?${params.toString()}`);
+				if (active) setInstSuggestions((data?.institutes as string[]) || []);
+			} catch (_) { if (active) setInstSuggestions([]); }
+		};
+		load();
+		return () => { active = false; };
+	}, [institute, category]);
+
+	useEffect(() => {
+		let active = true;
+		const load = async () => {
+			const prefix = stateName.trim();
+			if (!prefix) { setStateSuggestions([]); return; }
+			try {
+				const params = new URLSearchParams({ prefix, category });
+				const data = await apiFetch(`/api/notes/states?${params.toString()}`);
+				if (active) setStateSuggestions(data?.states || []);
+			} catch (_) { if (active) setStateSuggestions([]); }
+		};
+		load();
+		return () => { active = false; };
+	}, [stateName, category]);
+
+	useEffect(() => {
+		let active = true;
+		const load = async () => {
+			const prefix = district.trim();
+			if (!prefix) { setDistrictSuggestions([]); return; }
+			try {
+				const params = new URLSearchParams({ prefix, category, state: stateName });
+				const data = await apiFetch(`/api/notes/districts?${params.toString()}`);
+				if (active) setDistrictSuggestions(data?.districts || []);
+			} catch (_) { if (active) setDistrictSuggestions([]); }
+		};
+		load();
+		return () => { active = false; };
+	}, [district, category, stateName]);
+
+	useEffect(() => {
+		let active = true;
+		const load = async () => {
+			const q = subject.trim();
+			if (!q) { setSubjectSuggestions([]); return; }
+			try {
+				const params = new URLSearchParams({ q, category });
+				const notes = await apiFetch(`/api/notes?${params.toString()}`) as any[];
+				const subs = Array.from(new Set(((notes || []) as any[]).map((n: any)=> n.subject as string).filter(Boolean))) as string[];
+				if (active) setSubjectSuggestions((subs.slice(0, 20)) as string[]);
+			} catch (_) { if (active) setSubjectSuggestions([]); }
+		};
+		load();
+		return () => { active = false; };
+	}, [subject, category]);
 
 	const validate = () => {
 		if (!institute.trim()) return 'Institute is required';
@@ -150,10 +232,43 @@ export default function Upload() {
 				<option value="intermediate">Intermediate</option>
 				<option value="engineering">Engineering</option>
 			</select>
-			<input placeholder="Enter full name of the Institute" className="w-full p-2 rounded bg-black/30 border border-white/10" value={institute} onChange={e=>setInstitute(e.target.value)} />
+			<div className="relative">
+				<input placeholder="Enter full name of the Institute" className="w-full p-2 rounded bg-black/30 border border-white/10" value={institute} onFocus={()=>setShowInstSuggestions(true)} onBlur={()=>setTimeout(()=>setShowInstSuggestions(false), 120)} onChange={e=>setInstitute(e.target.value)} />
+				{showInstSuggestions && instSuggestions.length > 0 && (
+					<div className="absolute z-20 mt-1 w-full max-h-48 overflow-auto rounded bg-black/80 border border-white/10 shadow-lg">
+						{instSuggestions.map(s => (
+							<button key={s} type="button" onMouseDown={(e)=> e.preventDefault()} onClick={() => { setInstitute(s); setShowInstSuggestions(false); }} className="w-full text-left px-3 py-2 hover:bg-white/10 text-sm text-gray-200">
+								{highlightPrefix(s, institute.trim())}
+							</button>
+						))}
+					</div>
+				)}
+			</div>
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-				<input placeholder="State" className="w-full p-2 rounded bg-black/30 border border-white/10" value={stateName} onChange={e=>setStateName(e.target.value)} />
-				<input placeholder="District" className="w-full p-2 rounded bg-black/30 border border-white/10" value={district} onChange={e=>setDistrict(e.target.value)} />
+				<div className="relative">
+					<input placeholder="State" className="w-full p-2 rounded bg-black/30 border border-white/10" value={stateName} onFocus={()=>setShowStateSuggestions(true)} onBlur={()=>setTimeout(()=>setShowStateSuggestions(false), 120)} onChange={e=>setStateName(e.target.value)} />
+					{showStateSuggestions && stateSuggestions.length > 0 && (
+						<div className="absolute z-20 mt-1 w-full max-h-48 overflow-auto rounded bg-black/80 border border-white/10 shadow-lg">
+							{stateSuggestions.map(s => (
+								<button key={s} type="button" onMouseDown={(e)=> e.preventDefault()} onClick={() => { setStateName(s); setShowStateSuggestions(false); }} className="w-full text-left px-3 py-2 hover:bg-white/10 text-sm text-gray-200">
+									{highlightPrefix(s, stateName.trim())}
+								</button>
+							))}
+						</div>
+					)}
+				</div>
+				<div className="relative">
+					<input placeholder="District" className="w-full p-2 rounded bg-black/30 border border-white/10" value={district} onFocus={()=>setShowDistrictSuggestions(true)} onBlur={()=>setTimeout(()=>setShowDistrictSuggestions(false), 120)} onChange={e=>setDistrict(e.target.value)} />
+					{showDistrictSuggestions && districtSuggestions.length > 0 && (
+						<div className="absolute z-20 mt-1 w-full max-h-48 overflow-auto rounded bg-black/80 border border-white/10 shadow-lg">
+							{districtSuggestions.map(s => (
+								<button key={s} type="button" onMouseDown={(e)=> e.preventDefault()} onClick={() => { setDistrict(s); setShowDistrictSuggestions(false); }} className="w-full text-left px-3 py-2 hover:bg-white/10 text-sm text-gray-200">
+									{highlightPrefix(s, district.trim())}
+								</button>
+							))}
+						</div>
+					)}
+				</div>
 			</div>
 			{institute.trim() && (
 				<div className="space-y-2">
@@ -183,7 +298,6 @@ export default function Upload() {
 				<>
 					<div className="space-y-3">
 						<label className="block text-sm font-medium">Departments (Select Multiple)</label>
-						
 						{/* Custom Department Input */}
 						<div className="flex gap-2">
 							<input 
@@ -197,7 +311,6 @@ export default function Upload() {
 								Add Custom
 							</button>
 						</div>
-
 						{/* Predefined Departments Multi-Select */}
 						{meta?.engineeringDepartments && (
 							<div className="space-y-2">
@@ -223,7 +336,6 @@ export default function Upload() {
 								</div>
 							</div>
 						)}
-
 						{/* Selected Departments Display */}
 						{departments.length > 0 && (
 							<div className="space-y-2">
@@ -268,7 +380,6 @@ export default function Upload() {
 				<>
 					<div className="space-y-3">
 						<label className="block text-sm font-medium">Departments (Select Multiple)</label>
-						
 						{/* Custom Department Input */}
 						<div className="flex gap-2">
 							<input 
@@ -282,7 +393,6 @@ export default function Upload() {
 								Add Custom
 							</button>
 						</div>
-
 						{/* Predefined Departments Multi-Select */}
 						{meta?.intermediateDepartments && (
 							<div className="space-y-2">
@@ -308,7 +418,6 @@ export default function Upload() {
 								</div>
 							</div>
 						)}
-
 						{/* Selected Departments Display */}
 						{departments.length > 0 && (
 							<div className="space-y-2">
@@ -344,7 +453,8 @@ export default function Upload() {
 						</select>
 						<select onChange={e=>setYear(e.target.value)} className="p-2 rounded bg-black/30 border border-white/10">
 							<option value="">Year</option>
-							{meta?.years?.map((y: string)=> <option key={y} value={y}>{y}</option>)}
+							<option value="1">1</option>
+							<option value="2">2</option>
 						</select>
 						<select onChange={e=>setSemester(e.target.value)} className="p-2 rounded bg-black/30 border border-white/10">
 							<option value="">Semester</option>
@@ -357,7 +467,6 @@ export default function Upload() {
 				<>
 					<div className="space-y-3">
 						<label className="block text-sm font-medium">Departments (Select Multiple)</label>
-						
 						{/* Custom Department Input */}
 						<div className="flex gap-2">
 							<input 
@@ -371,7 +480,6 @@ export default function Upload() {
 								Add Custom
 							</button>
 						</div>
-
 						{/* Predefined Departments Multi-Select */}
 						{meta?.schoolDepartments && (
 							<div className="space-y-2">
@@ -397,7 +505,6 @@ export default function Upload() {
 								</div>
 							</div>
 						)}
-
 						{/* Selected Departments Display */}
 						{departments.length > 0 && (
 							<div className="space-y-2">
@@ -438,7 +545,18 @@ export default function Upload() {
 					</div>
 				</>
 			)}
-			<input placeholder="Subject" className="w-full p-2 rounded bg-black/30 border border-white/10" value={subject} onChange={e=>setSubject(e.target.value)} />
+			<div className="relative">
+				<input placeholder="Subject" className="w-full p-2 rounded bg-black/30 border border-white/10" value={subject} onFocus={()=>setShowSubjectSuggestions(true)} onBlur={()=>setTimeout(()=>setShowSubjectSuggestions(false), 120)} onChange={e=>setSubject(e.target.value)} />
+				{showSubjectSuggestions && subjectSuggestions.length > 0 && (
+					<div className="absolute z-20 mt-1 w-full max-h-48 overflow-auto rounded bg-black/80 border border-white/10 shadow-lg">
+						{subjectSuggestions.map(s => (
+							<button key={s} type="button" onMouseDown={(e)=> e.preventDefault()} onClick={() => { setSubject(s); setShowSubjectSuggestions(false); }} className="w-full text-left px-3 py-2 hover:bg-white/10 text-sm text-gray-200">
+								{highlightPrefix(s, subject.trim())}
+							</button>
+						))}
+					</div>
+				)}
+			</div>
 			<textarea placeholder="Description" className="w-full p-2 rounded bg-black/30 border border-white/10" value={description} onChange={e=>setDescription(e.target.value)} />
 			<input placeholder="Tags (comma separated)" className="w-full p-2 rounded bg-black/30 border border-white/10" value={tags} onChange={e=>setTags(e.target.value)} />
 			<input type="file" accept=".pdf,.doc,.docx" onChange={e=>setFile(e.target.files?.[0] || null)} className="w-full" />

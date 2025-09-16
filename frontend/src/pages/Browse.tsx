@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { apiFetch, API_BASE } from '../lib/api.ts';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.tsx';
 
 function useQuery() {
@@ -30,6 +30,7 @@ type Note = {
 export default function Browse() {
 	const query = useQuery();
 	const { token } = useAuth();
+	const navigate = useNavigate();
 	const [meta, setMeta] = useState<any>(null);
 	const [notes, setNotes] = useState<Note[]>([]);
 	const [loading, setLoading] = useState(false);
@@ -459,18 +460,16 @@ export default function Browse() {
 							{/* Action button - only View, no Delete */}
 							<div className="mt-3 -mx-4 -mb-4">
 								{/* View Button */}
-								<a 
-									href={`${API_BASE}/api/notes/${n._id}/view`}
-									target="_blank" 
-									rel="noreferrer"
+								<button 
 									className="block w-full px-4 py-3 bg-blue-600 hover:bg-blue-500 text-sm font-medium text-center transition-colors flex items-center justify-center gap-2"
 									onClick={async () => {
-										// Optimistically bump local views if present
+										try { await apiFetch(`/api/notes/${n._id}/view`, { method: 'POST' }); } catch {}
 										(n as any).views = (typeof (n as any).views === 'number' ? (n as any).views : 0) + 1;
+										navigate(`/view/${n._id}`, { state: { note: n } });
 									}}
 								>
 									📄 View
-								</a>
+								</button>
 								{/* Download Button - gated */}
 								<button
 									onClick={() => handleDownload(n)}

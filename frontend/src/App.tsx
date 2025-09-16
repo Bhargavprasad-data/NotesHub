@@ -8,6 +8,7 @@ import Profile from './pages/Profile.tsx';
 import { Login, Register } from './pages/Auth.tsx';
 import ResetPassword from './pages/ResetPassword.tsx';
 import OAuthCallback from './pages/OAuthCallback.tsx';
+import ViewNote from './pages/ViewNote.tsx';
 import { AnimatePresence, motion } from 'framer-motion';
 import OfflineBanner from './components/OfflineBanner.tsx';
 
@@ -216,6 +217,7 @@ function Nav() {
 					<Link to="/" className="text-white hover:text-blue-400 transition-colors font-medium">Home</Link>
 					<Link to="/browse" className="text-white hover:text-blue-400 transition-colors font-medium">Browse</Link>
 					<Link to="/upload" className="text-white hover:text-blue-400 transition-colors font-medium">Upload</Link>
+					<Link to="/profile" className="text-white hover:text-blue-400 transition-colors font-medium">Profile</Link>
 				</div>
 			</div>
 			
@@ -223,9 +225,6 @@ function Nav() {
 			<div className="text-white">
 				{user ? (
 					<div className="flex items-center gap-4">
-						<a href="https://bhargavprasad-portfolio.vercel.app/" target="_blank" rel="noreferrer" className="rounded-full border border-white/20 hover:border-white/40 p-0.5">
-							<img src="/profile-avatar.png" alt="Profile" title="Profile" className="w-8 h-8 rounded-full object-cover" />
-						</a>
 						<span className="text-sm text-gray-300">{user.name} ({user.role})</span>
 						<button 
 							onClick={logout} 
@@ -233,6 +232,9 @@ function Nav() {
 						>
 							Logout
 						</button>
+						<a href="https://bhargavprasad-portfolio.vercel.app/" target="_blank" rel="noreferrer" className="rounded-full border border-white/20 hover:border-white/40 p-0.5">
+							<img src="/profile-avatar.png" alt="Profile" title="Profile" className="w-8 h-8 rounded-full object-cover" />
+						</a>
 					</div>
 				) : (
 					<div className="flex items-center gap-4">
@@ -301,6 +303,7 @@ function AnimatedRoutes() {
 					<Route path="/register" element={<Register />} />
 					<Route path="/reset-password" element={<ResetPassword />} />
 					<Route path="/oauth/callback" element={<OAuthCallback />} />
+					<Route path="/view/:id" element={<div className="pt-20"><ViewNote /></div>} />
 				</Routes>
 			</motion.div>
 		</AnimatePresence>

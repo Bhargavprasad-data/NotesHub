@@ -116,6 +116,44 @@ router.get('/:id/view', async (req, res) => {
     }
 });
 
+// Inline embed endpoint to stream PDF without redirect (better for iframes)
+router.get('/:id/embed', async (req, res) => {
+    try {
+        const note = await Note.findById(req.params.id);
+        if (!note) return res.status(404).json({ message: 'Not found' });
+        res.setHeader('X-Frame-Options', 'ALLOWALL');
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+        res.setHeader('Content-Type', 'application/pdf');
+        // Try serve local upload directly
+        try {
+            const parsed = new URL(note.fileUrl);
+            const urlPath = parsed.pathname;
+            const fileNameOnDisk = path.basename(urlPath);
+            const abs = path.resolve(uploadDir, fileNameOnDisk);
+            if (fs.existsSync(abs)) {
+                res.setHeader('Content-Disposition', `inline; filename="${note.fileName}"`);
+                return fs.createReadStream(abs).pipe(res);
+            }
+        } catch (_) {}
+        // Fallback: proxy the remote URL
+        try {
+            const url = note.fileUrl;
+            const protocol = url.startsWith('https:') ? require('https') : require('http');
+            protocol.get(url, (fileRes) => {
+                if (fileRes.statusCode && fileRes.statusCode >= 300 && fileRes.statusCode < 400 && fileRes.headers.location) {
+                    const redirectUrl = fileRes.headers.location.startsWith('http') ? fileRes.headers.location : url;
+                    return protocol.get(redirectUrl, (r2) => r2.pipe(res)).on('error', () => res.status(502).end());
+                }
+                fileRes.pipe(res);
+            }).on('error', () => res.status(502).end());
+        } catch (_) {
+            return res.status(500).end();
+        }
+    } catch (err) {
+        return res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // Download proxy - require 2 uploads to access, then increment downloads and force file download
 router.get('/:id/download', auth(), async (req, res) => {
     try {

@@ -130,38 +130,6 @@ export default function Profile() {
 						</span>
 					</div>
 				</div>
-				{/* Avatar uploader */}
-				<form className="mt-2" onSubmit={async (e) => {
-					e.preventDefault();
-					const input = (e.currentTarget.elements.namedItem('avatar') as HTMLInputElement);
-					if (!input || !input.files || input.files.length === 0) return;
-					const file = input.files[0];
-					const fd = new FormData();
-					fd.append('avatar', file);
-					try {
-						const res = await fetch(`${(window as any).REACT_APP_API_URL || 'http://localhost:5000'}/api/auth/me/avatar`, {
-							method: 'POST',
-							headers: token ? { Authorization: `Bearer ${token}` } as any : undefined,
-							body: fd,
-						});
-						if (!res.ok) throw new Error('Upload failed');
-						const data = await res.json();
-						try {
-							const uStr = localStorage.getItem('user');
-							if (uStr) {
-								const u = JSON.parse(uStr);
-								u.avatarUrl = data.avatarUrl;
-								localStorage.setItem('user', JSON.stringify(u));
-								window.location.reload();
-							}
-						} catch {}
-					} catch {}
-				}}>
-					<div className="flex items-center gap-2">
-						<input type="file" name="avatar" accept="image/*" className="text-sm" />
-						<button className="px-3 py-1.5 rounded bg-white/10 hover:bg-white/20 text-sm border border-white/10">Upload Avatar</button>
-					</div>
-				</form>
 			</motion.div>
 
 			{/* Statistics Section */}

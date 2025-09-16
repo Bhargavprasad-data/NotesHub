@@ -50,7 +50,13 @@ try {
 
 const app = express();
 
-app.use(helmet());
+// Security headers; allow embedding PDFs from this API in the frontend app
+app.use(helmet({
+    frameguard: false,
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+}));
+app.use(helmet.crossOriginResourcePolicy({ policy: 'cross-origin' }));
 // CORS configuration for both development and production
 const allowedOrigins = [
   'http://localhost:3000',  // Local development
@@ -67,7 +73,11 @@ app.use(morgan('dev'));
 app.use(passport.initialize());
 
 const uploadsDir = path.resolve(__dirname, `../${process.env.UPLOAD_DIR || 'uploads'}`);
-app.use('/uploads', express.static(uploadsDir));
+app.use('/uploads', (req, res, next) => {
+    res.setHeader('X-Frame-Options', 'ALLOWALL');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    next();
+}, express.static(uploadsDir));
 
 app.get('/api/health', (_req, res) => {
 	res.json({ ok: true });
