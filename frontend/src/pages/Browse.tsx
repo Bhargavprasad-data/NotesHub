@@ -371,6 +371,27 @@ export default function Browse() {
 				<button onClick={apply} className="w-full p-2 rounded bg-blue-600 hover:bg-blue-500 disabled:opacity-60" disabled={loading}>{loading ? 'Loading...' : 'Apply Filters'}</button>
 			</aside>
 			<main className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+				{loading && visibleNotes.length === 0 && (
+					<>
+						{Array.from({ length: 6 }).map((_, i) => (
+							<div key={`skeleton-${i}`} className="relative rounded-xl bg-glass-100 backdrop-blur border border-white/10 overflow-hidden animate-pulse">
+								<div className="p-4 space-y-3">
+									<div className="h-5 w-2/3 bg-white/10 rounded" />
+									<div className="h-4 w-1/3 bg-white/10 rounded" />
+									<div className="h-3 w-full bg-white/10 rounded" />
+									<div className="h-3 w-5/6 bg-white/10 rounded" />
+									<div className="flex gap-2 pt-2">
+										<div className="h-6 w-16 bg-white/10 rounded-full" />
+										<div className="h-6 w-20 bg-white/10 rounded-full" />
+										<div className="h-6 w-14 bg-white/10 rounded-full" />
+									</div>
+									<div className="h-10 w-full bg-white/10 rounded mt-4" />
+									<div className="h-10 w-full bg-white/10 rounded mt-2" />
+								</div>
+							</div>
+						))}
+					</>
+				)}
 				{visibleNotes.map(n => (
 					<div key={n._id} className="group relative rounded-xl bg-glass-100 backdrop-blur border border-white/10 hover:bg-glass-200 transition overflow-hidden">
 						<div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition" />
@@ -454,10 +475,14 @@ export default function Browse() {
 								<button
 									onClick={() => handleDownload(n)}
 									className="block w-full px-4 py-3 bg-blue-500/20 hover:bg-blue-500/30 text-sm font-medium text-center transition-colors flex items-center justify-center gap-2 border-t border-white/10 disabled:opacity-60"
-									disabled={!token}
 								>
 									⬇️ Download
 								</button>
+								{!token && (
+									<div className="w-full px-4 py-2 text-xs text-gray-300 text-center border-t border-white/5 bg-black/10">
+										Login required to download
+									</div>
+								)}
 								{downloadMessage && (
 									<div className="w-full px-4 py-2 text-xs text-yellow-300 text-center border-t border-white/5 bg-yellow-900/20">
 										{downloadMessage}
@@ -474,7 +499,7 @@ export default function Browse() {
 									Added by {((n as any).owner && ((n as any).owner.name || (n as any).owner.email)) || 'Unknown'}
 								</div>
 								<div className="w-full px-4 py-2 text-xs text-gray-400 text-center bg-black/5 border-t border-white/5">
-									📚Notes
+									📚Materials
 								</div>
 								{/* Book decoration */}
 								{/* <div className="flex justify-center items-center pb-2">

@@ -5,9 +5,13 @@ const cors = require('cors');
 const morgan = require('morgan');
 const helmet = require('helmet');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+const passport = require('passport');
 
 const authRoutes = require('./routes/auth');
 const notesRoutes = require('./routes/notes');
+const oauthRoutes = require('./routes/oauth');
+let prisma = null;
+try { prisma = require('./prisma').prisma; } catch (_) {}
 const { notFound, errorHandler } = require('./middleware/error');
 
 // Added: verify mailer at startup
@@ -60,6 +64,7 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(morgan('dev'));
+app.use(passport.initialize());
 
 const uploadsDir = path.resolve(__dirname, `../${process.env.UPLOAD_DIR || 'uploads'}`);
 app.use('/uploads', express.static(uploadsDir));
@@ -69,6 +74,7 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/auth', oauthRoutes);
 app.use('/api/notes', notesRoutes);
 
 app.use(notFound);
@@ -79,8 +85,13 @@ const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/noteshub3d
 
 async function start() {
 	try {
-		await mongoose.connect(MONGO_URI);
-		console.log('MongoDB connected');
+		if (process.env.DATABASE_URL && prisma) {
+			await prisma.$connect();
+			console.log('Prisma connected to Postgres');
+		} else {
+			await mongoose.connect(MONGO_URI);
+			console.log('MongoDB connected');
+		}
 		await verifyMailer();
 		app.listen(PORT, () => {
 			console.log(`Server running on http://localhost:${PORT}`);

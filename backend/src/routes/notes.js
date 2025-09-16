@@ -59,6 +59,33 @@ router.get('/', async (req, res) => {
 	}
 });
 
+// Public stats: total approved notes, distinct colleges, distinct departments
+router.get('/stats', async (_req, res) => {
+    try {
+        const [totalNotes, collegesAgg, departmentsAgg] = await Promise.all([
+            Note.countDocuments({ status: 'approved' }),
+            Note.aggregate([
+                { $match: { status: 'approved', institute: { $type: 'string', $ne: '' } } },
+                { $group: { _id: '$institute' } },
+                { $count: 'count' }
+            ]),
+            Note.aggregate([
+                { $match: { status: 'approved' } },
+                { $unwind: { path: '$departments', preserveNullAndEmptyArrays: false } },
+                { $match: { departments: { $type: 'string', $ne: '' } } },
+                { $group: { _id: '$departments' } },
+                { $count: 'count' }
+            ])
+        ]);
+
+        const colleges = (collegesAgg && collegesAgg[0] && collegesAgg[0].count) || 0;
+        const departments = (departmentsAgg && departmentsAgg[0] && departmentsAgg[0].count) || 0;
+        return res.json({ totalNotes, colleges, departments });
+    } catch (err) {
+        return res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // Increment views for a note and return updated count
 router.post('/:id/view', async (req, res) => {
     try {

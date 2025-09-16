@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext.tsx';
 import { motion } from 'framer-motion';
 
 export default function Profile() {
-	const { user } = useAuth();
+	const { user, token } = useAuth();
 	const [notes, setNotes] = useState<any[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [stats, setStats] = useState({ totalNotes: 0, totalSize: 0, categories: {} as Record<string, number> });
@@ -115,8 +115,12 @@ export default function Profile() {
 				className="bg-glass-100 backdrop-blur rounded-xl border border-white/10 p-6"
 			>
 				<div className="flex items-center gap-4 mb-4">
-					<div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xl font-bold">
-						{user?.name?.charAt(0).toUpperCase()}
+					<div className="w-16 h-16 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xl font-bold">
+						{user?.avatarUrl ? (
+							<img src={user.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+						) : (
+							<span>{user?.name?.charAt(0).toUpperCase()}</span>
+						)}
 					</div>
 					<div>
 						<h1 className="text-2xl font-bold">{user?.name}</h1>
@@ -126,6 +130,38 @@ export default function Profile() {
 						</span>
 					</div>
 				</div>
+				{/* Avatar uploader */}
+				<form className="mt-2" onSubmit={async (e) => {
+					e.preventDefault();
+					const input = (e.currentTarget.elements.namedItem('avatar') as HTMLInputElement);
+					if (!input || !input.files || input.files.length === 0) return;
+					const file = input.files[0];
+					const fd = new FormData();
+					fd.append('avatar', file);
+					try {
+						const res = await fetch(`${(window as any).REACT_APP_API_URL || 'http://localhost:5000'}/api/auth/me/avatar`, {
+							method: 'POST',
+							headers: token ? { Authorization: `Bearer ${token}` } as any : undefined,
+							body: fd,
+						});
+						if (!res.ok) throw new Error('Upload failed');
+						const data = await res.json();
+						try {
+							const uStr = localStorage.getItem('user');
+							if (uStr) {
+								const u = JSON.parse(uStr);
+								u.avatarUrl = data.avatarUrl;
+								localStorage.setItem('user', JSON.stringify(u));
+								window.location.reload();
+							}
+						} catch {}
+					} catch {}
+				}}>
+					<div className="flex items-center gap-2">
+						<input type="file" name="avatar" accept="image/*" className="text-sm" />
+						<button className="px-3 py-1.5 rounded bg-white/10 hover:bg-white/20 text-sm border border-white/10">Upload Avatar</button>
+					</div>
+				</form>
 			</motion.div>
 
 			{/* Statistics Section */}

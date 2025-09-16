@@ -66,7 +66,7 @@ if (smtpHost) {
 } else {
   // Legacy fallback: Gmail service. Requires an App Password if 2FA is enabled
   transporter = nodemailer.createTransport({
-    service: 'gmail',
+  service: 'gmail',
     auth: { user: smtpUser, pass: smtpPass }
   });
 }
@@ -283,11 +283,11 @@ async function sendPasswordResetEmail(email, name, resetUrl) {
       subject,
       html
     };
-    try {
-      const info = await transporter.sendMail(mailOptions);
+  try {
+    const info = await transporter.sendMail(mailOptions);
       console.log('Password reset email sent via SMTP:', info.response || 'ok');
-      return info;
-    } catch (error) {
+    return info;
+  } catch (error) {
       console.error('SMTP password reset email failed:', error && error.message ? error.message : error);
       // Don't throw error, just log it and return a success response
       console.log('Password reset email sending failed, but continuing with password reset process...');

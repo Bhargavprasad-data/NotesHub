@@ -7,10 +7,34 @@ import Upload from './pages/Upload.tsx';
 import Profile from './pages/Profile.tsx';
 import { Login, Register } from './pages/Auth.tsx';
 import ResetPassword from './pages/ResetPassword.tsx';
+import OAuthCallback from './pages/OAuthCallback.tsx';
 import { AnimatePresence, motion } from 'framer-motion';
+import OfflineBanner from './components/OfflineBanner.tsx';
 
 function Home() {
 	const { user } = useAuth();
+	const [stats, setStats] = useState<{ totalNotes: number; colleges: number; departments: number } | null>(null);
+	const [loadingStats, setLoadingStats] = useState<boolean>(true);
+
+	const formatNumber = (n: number) => {
+		if (n >= 1000000) return `${(n / 1000000).toFixed(1).replace(/\.0$/, '')}M+`;
+		if (n >= 1000) return `${(n / 1000).toFixed(1).replace(/\.0$/, '')}k+`;
+		return `${n}`;
+	};
+
+	useEffect(() => {
+		(async () => {
+			try {
+				const apiBase = (window as any).REACT_APP_API_URL || 'http://localhost:5000';
+				const res = await fetch(`${apiBase}/api/notes/stats`);
+				if (res.ok) {
+					const data = await res.json();
+					setStats(data);
+				}
+			} catch (_) {}
+			finally { setLoadingStats(false); }
+		})();
+	}, []);
 	return (
 		<div className="min-h-screen flex flex-col items-center justify-center gap-8 p-6">
 			{/* Hero Section */}
@@ -144,15 +168,21 @@ function Home() {
 					{/* Stats */}
 					<div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-2xl">
 						<div className="text-center">
-							<div className="text-2xl font-bold text-blue-400">1000+</div>
+							<div className="text-2xl font-bold text-blue-400">
+								{loadingStats ? <span className="inline-block w-16 h-6 bg-white/10 animate-pulse rounded" /> : formatNumber(stats?.totalNotes || 0)}
+							</div>
 							<div className="text-gray-400 text-sm">Notes Available</div>
 						</div>
 						<div className="text-center">
-							<div className="text-2xl font-bold text-green-400">50+</div>
+							<div className="text-2xl font-bold text-green-400">
+								{loadingStats ? <span className="inline-block w-12 h-6 bg-white/10 animate-pulse rounded" /> : formatNumber(stats?.colleges || 0)}
+							</div>
 							<div className="text-gray-400 text-sm">Colleges</div>
 						</div>
 						<div className="text-center">
-							<div className="text-2xl font-bold text-purple-400">15+</div>
+							<div className="text-2xl font-bold text-purple-400">
+								{loadingStats ? <span className="inline-block w-12 h-6 bg-white/10 animate-pulse rounded" /> : formatNumber(stats?.departments || 0)}
+							</div>
 							<div className="text-gray-400 text-sm">Departments</div>
 						</div>
 					</div>
@@ -186,7 +216,6 @@ function Nav() {
 					<Link to="/" className="text-white hover:text-blue-400 transition-colors font-medium">Home</Link>
 					<Link to="/browse" className="text-white hover:text-blue-400 transition-colors font-medium">Browse</Link>
 					<Link to="/upload" className="text-white hover:text-blue-400 transition-colors font-medium">Upload</Link>
-					<Link to="/profile" className="text-white hover:text-blue-400 transition-colors font-medium">Profile</Link>
 				</div>
 			</div>
 			
@@ -194,6 +223,9 @@ function Nav() {
 			<div className="text-white">
 				{user ? (
 					<div className="flex items-center gap-4">
+						<a href="https://bhargavprasad-portfolio.vercel.app/" target="_blank" rel="noreferrer" className="rounded-full border border-white/20 hover:border-white/40 p-0.5">
+							<img src="/profile-avatar.png" alt="Profile" title="Profile" className="w-8 h-8 rounded-full object-cover" />
+						</a>
 						<span className="text-sm text-gray-300">{user.name} ({user.role})</span>
 						<button 
 							onClick={logout} 
@@ -211,6 +243,9 @@ function Nav() {
 						<Link to="/register" className="text-white hover:text-blue-400 transition-colors font-medium">
 							Register
 						</Link>
+						<a href="https://bhargavprasad-portfolio.vercel.app/" target="_blank" rel="noreferrer" className="rounded-full border border-white/20 hover:border-white/40 p-0.5">
+							<img src="/profile-avatar.png" alt="Profile" title="Profile" className="w-8 h-8 rounded-full object-cover" />
+						</a>
 					</div>
 				)}
 			</div>
@@ -259,12 +294,13 @@ function AnimatedRoutes() {
 			<motion.div key={location.pathname} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
 				<Routes location={location}>
 					<Route path="/" element={<div className="pt-20"><Home /></div>} />
-					<Route path="/browse" element={<ProtectedRoute><div className="pt-20"><Browse /></div></ProtectedRoute>} />
+					<Route path="/browse" element={<div className="pt-20"><Browse /></div>} />
 					<Route path="/upload" element={<ProtectedRoute><div className="pt-20"><Upload /></div></ProtectedRoute>} />
 					<Route path="/profile" element={<ProtectedRoute><div className="pt-20"><Profile /></div></ProtectedRoute>} />
 					<Route path="/login" element={<Login />} />
 					<Route path="/register" element={<Register />} />
 					<Route path="/reset-password" element={<ResetPassword />} />
+					<Route path="/oauth/callback" element={<OAuthCallback />} />
 				</Routes>
 			</motion.div>
 		</AnimatePresence>
@@ -276,6 +312,7 @@ export default function App() {
 		<AuthProvider>
 			<BrowserRouter>
 				<Background3D />
+				<OfflineBanner />
 				<Nav />
 				<AnimatedRoutes />
 			</BrowserRouter>

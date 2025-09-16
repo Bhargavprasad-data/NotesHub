@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { apiFetch } from '../lib/api.ts';
+import { apiFetch, API_BASE } from '../lib/api.ts';
 import { useAuth } from '../context/AuthContext.tsx';
 import { motion } from 'framer-motion';
 import AuthBackground3D from '../components/AuthBackground3D.tsx';
@@ -158,7 +158,16 @@ export function Login() {
 						<button className="w-full p-3 rounded-lg bg-blue-600 hover:bg-blue-500 font-medium transition-colors">
 							Sign In
 						</button>
-						
+						<div className="flex items-center gap-3 my-2">
+							<div className="flex-1 h-px bg-white/10" />
+							<span className="text-gray-400 text-xs">or continue with</span>
+							<div className="flex-1 h-px bg-white/10" />
+						</div>
+						<div className="grid grid-cols-3 gap-2">
+							<a href={`${API_BASE}/api/auth/google`} className="p-2 rounded bg-white/10 hover:bg-white/15 text-center">Google</a>
+							<a href={`${API_BASE}/api/auth/github`} className="p-2 rounded bg-white/10 hover:bg-white/15 text-center">GitHub</a>
+							<a href={`${API_BASE}/api/auth/linkedin`} className="p-2 rounded bg-white/10 hover:bg-white/15 text-center">LinkedIn</a>
+						</div>
 						<div className="text-center">
 							<button 
 								type="button"
@@ -299,15 +308,15 @@ export function Register() {
 						<button className="w-full p-3 rounded-lg bg-green-600 hover:bg-green-500 font-medium transition-colors">
 							Create Account
 						</button>
-						
-						<div className="text-center">
-							<p className="text-gray-400 text-sm">
-								Already have an account?{' '}
-								<a href="/login" className="text-blue-400 hover:text-blue-300 underline">
-									Sign in here
-								</a>
-							</p>
-						</div>
+                        
+                        <div className="text-center">
+                            <p className="text-gray-400 text-sm">
+                                Already have an account?{' '}
+                                <a href="/login" className="text-blue-400 hover:text-blue-300 underline">
+                                    Sign in here
+                                </a>
+                            </p>
+                        </div>
 					</motion.form>
 				</div>
 			</div>
